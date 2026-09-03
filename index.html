@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Libreta de Fiados - Optimizada</title>
+<style>
+:root{
+  --paper:#E9F0E3;
+  --paper-dark:#DCE6D4;
+  --ink:#1F2A24;
+  --ink-soft:#4A5A4E;
+  --margin-red:#B33A3A;
+  --rule-blue:#8DA0B8;
+  --stamp-red:#A6382E;
+  --stamp-green:#3F6B4A;
+  --card:#F4F7F0;
+  --gold:#B08D3E;
+  --shadow:0 2px 8px rgba(31,42,36,0.1);
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--paper);
+  background-image:linear-gradient(var(--rule-blue) 1px, transparent 1px);
+  background-size:100% 34px;
+  font-family:'Courier New', monospace;
+  color:var(--ink);
+  min-height:100vh;
+  padding-bottom:60px;
+}
+::selection{background:var(--gold);color:#fff;}
+header{
+  position:sticky; top:0; z-index:20;
+  background:var(--paper);
+  border-bottom:3px double var(--ink);
+  padding:14px 16px 10px 46px;
+  position:relative;
+}
+header::before{content:"";position:absolute;left:26px;top:0;bottom:0;width:2px;background:var(--margin-red);}
+h1{font-family:Georgia,'Times New Roman',serif; font-size:22px; letter-spacing:.5px; margin:0; display:flex; align-items:baseline; gap:8px;}
+h1 .sub{font-size:11px; color:var(--ink-soft); font-family:'Courier New',monospace; letter-spacing:1px;}
+.summary-bar{display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;}
+.chip{background:var(--card); border:1px solid var(--ink-soft); border-radius:3px; padding:5px 10px; font-size:12px; transition:transform 0.2s;}
+.chip:hover{transform:translateY(-1px);}
+.chip b{font-size:14px;}
+.chip.debe b{color:var(--stamp-red);}
+.chip.aldia b{color:var(--stamp-green);}
+
+main{padding:14px 16px 14px 46px; position:relative;}
+main::before{content:"";position:absolute;left:26px;top:0;bottom:0;width:2px;background:var(--margin-red);}
+
+.toolbar{display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;}
+input, select, button, textarea{font-family:inherit; font-size:14px;}
+.search{flex:1; min-width:150px; padding:9px 10px; border:1px solid var(--ink-soft); border-radius:3px; background:var(--card); color:var(--ink); transition:border-color 0.2s;}
+.search:focus{outline:none; border-color:var(--gold);}
+.filters{display:flex; gap:6px;}
+.filters button{padding:9px 12px; border:1px solid var(--ink-soft); background:var(--card); border-radius:3px; cursor:pointer; color:var(--ink-soft); transition:all 0.2s;}
+.filters button:hover{background:var(--paper-dark);}
+.filters button.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+.btn-add{padding:9px 14px; background:var(--stamp-green); color:#fff; border:none; border-radius:3px; cursor:pointer; font-weight:bold; transition:opacity 0.2s;}
+.btn-add:hover{opacity:.9;}
+
+.admin-bar{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+.admin-bar button{
+  flex:1; min-width:150px; padding:8px 10px; border:1px dashed var(--ink-soft);
+  background:transparent; border-radius:4px; cursor:pointer; font-size:11.5px; color:var(--ink-soft);
+  transition:all 0.2s;
+}
+.admin-bar button:hover{background:var(--paper-dark); color:var(--ink);}
+
+.list{display:flex; flex-direction:column; gap:8px;}
+.row{background:var(--card); border:1px solid #c9d3c1; border-left:4px solid var(--ink-soft); border-radius:3px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; transition:transform .1s, box-shadow 0.2s;}
+.row:hover{transform:translateX(2px); border-left-color:var(--gold); box-shadow:var(--shadow);}
+.row.debe{border-left-color:var(--stamp-red);}
+.row.aldia{border-left-color:var(--stamp-green);}
+.row .name{font-weight:bold; font-size:15px;}
+.row .meta{font-size:11px; color:var(--ink-soft); margin-top:2px;}
+.row .amt{font-size:16px; font-weight:bold; text-align:right;}
+.row .amt.debe{color:var(--stamp-red);}
+.row .amt.aldia{color:var(--stamp-green);}
+.stamp{display:inline-block; font-size:9px; border:1.5px solid currentColor; padding:1px 5px; border-radius:2px; transform:rotate(-3deg); letter-spacing:1px; margin-top:3px;}
+
+.empty{text-align:center; padding:40px 10px; color:var(--ink-soft);}
+.empty .big{font-size:40px; margin-bottom:8px;}
+
+.overlay{position:fixed; inset:0; background:rgba(31,42,36,.55); display:none; align-items:flex-end; justify-content:center; z-index:100;}
+.overlay.show{display:flex;}
+.sheet{background:var(--paper); width:100%; max-width:480px; max-height:92vh; overflow-y:auto; border-radius:14px 14px 0 0; padding:18px 18px 24px 18px; border-top:3px double var(--ink); animation:up .18s ease-out;}
+@media(min-width:600px){.overlay{align-items:center;} .sheet{border-radius:8px; max-height:88vh;}}
+@keyframes up{from{transform:translateY(30px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.sheet h2{font-family:Georgia,serif; margin:0 0 4px 0; font-size:19px;}
+.sheet .close{float:right; background:none; border:none; font-size:20px; cursor:pointer; color:var(--ink-soft); transition:color 0.2s;}
+.sheet .close:hover{color:var(--ink);}
+.field{margin:12px 0;}
+.field label{display:block; font-size:11px; color:var(--ink-soft); margin-bottom:4px; letter-spacing:.5px;}
+.field input, .field select{width:100%; padding:10px; border:1px solid var(--ink-soft); border-radius:4px; background:var(--card); color:var(--ink); transition:border-color 0.2s;}
+.field input:focus, .field select:focus{outline:none; border-color:var(--gold);}
+.two-col{display:flex; gap:8px;}
+.two-col .field{flex:1;}
+.movtype{display:flex; gap:8px; margin-bottom:12px;}
+.movtype button{flex:1; padding:10px; border:1.5px solid var(--ink-soft); background:var(--card); border-radius:5px; cursor:pointer; font-weight:bold; transition:all 0.2s;}
+.movtype button:hover{background:var(--paper-dark);}
+.movtype button.sel-cargo.active{background:var(--stamp-red); color:#fff; border-color:var(--stamp-red);}
+.movtype button.sel-abono.active{background:var(--stamp-green); color:#fff; border-color:var(--stamp-green);}
+.save-btn{width:100%; padding:12px; background:var(--ink); color:var(--paper); border:none; border-radius:5px; font-weight:bold; cursor:pointer; margin-top:6px; transition:opacity 0.2s;}
+.save-btn:hover{opacity:0.9;}
+.save-btn:disabled{opacity:.4; cursor:not-allowed;}
+.hist{margin-top:14px; border-top:1px dashed var(--ink-soft); padding-top:10px;}
+.hist-item{padding:7px 0; border-bottom:1px solid #dfe6d8; font-size:13px; transition:background 0.2s;}
+.hist-item:hover{background:var(--paper-dark); border-radius:4px; padding:7px 6px;}
+.hist-item .top{display:flex; justify-content:space-between;}
+.hist-item .d{color:var(--ink-soft); font-size:11px;}
+.hist-item .a.cargo{color:var(--stamp-red);}
+.hist-item .a.abono{color:var(--stamp-green);}
+.hist-item .det{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+.del-mov{background:none;border:none;color:#b0b0b0;cursor:pointer;font-size:12px;margin-left:6px;transition:color 0.2s;}
+.del-mov:hover{color:var(--stamp-red);}
+
+.export-row{display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;}
+.export-row button{flex:1; min-width:90px; padding:9px; border:1px solid var(--ink-soft); background:var(--card); border-radius:5px; cursor:pointer; font-size:12px; transition:all 0.2s;}
+.export-row button:hover{background:var(--paper-dark);}
+
+.big-balance{text-align:center; padding:14px; margin:8px 0; background:var(--card); border-radius:6px; border:1px solid #c9d3c1;}
+.big-balance .num{font-size:30px; font-weight:bold; font-family:Georgia,serif;}
+.big-balance .num.debe{color:var(--stamp-red);}
+.big-balance .num.aldia{color:var(--stamp-green);}
+.big-balance .phone{font-size:11px; color:var(--ink-soft); margin-top:4px;}
+
+.modal-actions{display:flex; flex-wrap:wrap; justify-content:flex-start; gap:8px; margin-bottom:10px;}
+.modal-actions button{flex:1; min-width:100px;}
+.btn-close{padding:8px 14px; border:1px solid var(--ink-soft); background:var(--card); color:var(--ink); border-radius:5px; cursor:pointer; font-size:13px; transition:all 0.2s;}
+.btn-close:hover{background:var(--paper-dark);}
+.btn-delete{padding:8px 14px; border:1px solid var(--stamp-red); background:transparent; color:var(--stamp-red); border-radius:5px; cursor:pointer; font-size:13px; transition:all 0.2s;}
+.btn-delete:hover{background:var(--stamp-red); color:#fff;}
+
+.loading{text-align:center; padding:30px; color:var(--ink-soft);}
+.help-txt{font-size:11px; color:var(--ink-soft); margin:-4px 0 12px 0; line-height:1.4;}
+
+#toast{position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:var(--ink); color:var(--paper); padding:10px 18px; border-radius:20px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:200; max-width:90%; text-align:center;}
+#toast.show{opacity:1;}
+#fileInput{display:none;}
+
+@media(max-width:400px){
+  .admin-bar button{min-width:120px; font-size:11px;}
+  .summary-bar{gap:6px;}
+  .chip{padding:4px 8px; font-size:11px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📒 Libreta de Fiados <span class="sub">LIBRO DE CUENTAS</span></h1>
+  <div class="summary-bar" id="summaryBar">
+      <div class="chip debe">DEUDA TOTAL<br><b>$100.500</b></div>
+      <div class="chip">DEUDORES<br><b>2</b></div>
+      <div class="chip">CLIENTES<br><b>2</b></div>
+    </div>
+</header>
+
+<main>
+  <div class="toolbar">
+    <input class="search" id="searchInput" placeholder="Buscar por grado, apellidos, nombres o celular..." aria-label="Buscar clientes">
+    <div class="filters">
+      <button class="active" data-f="todos" aria-label="Mostrar todos">Todos</button>
+      <button data-f="debe" aria-label="Mostrar deudores">Deben</button>
+      <button data-f="aldia" aria-label="Mostrar al día">Al día</button>
+    </div>
+    <button class="btn-add" id="btnAddClient">+ Cliente</button>
+  </div>
+
+  <div class="admin-bar">
+    <button id="btnExportAll">📊 Exportar todo a Excel</button>
+    <button id="btnImportAll">📥 Cargar Excel (actualizar)</button>
+    <button id="btnDownloadApp">⬇️ Descargar app con estos datos</button>
+    <button id="btnShareApp">📤 Compartir con un compañero</button>
+  </div>
+  <div class="admin-bar">
+    <button id="btnResumenExcel">📊 Resumen general (Excel)</button>
+    <button id="btnResumenPDF">📄 Resumen general (PDF)</button>
+    <button id="btnResumenWA">💬 Resumen general (WhatsApp)</button>
+  </div>
+  <input type="file" id="fileInput" accept=".csv" aria-label="Importar archivo CSV">
+
+  <div class="list" id="clientList"><div class="row debe" onclick="App.openDetail('mswesbfxi2akw')">
+        <div>
+          <div class="name">cardona rodriguez carlos andres <span class="stamp" style="transform:none;font-size:8px;">C</span></div>
+          <div class="meta">📱 3156356012 · Último: 16/8/2026</div>
+        </div>
+        <div>
+          <div class="amt debe">$100.000</div>
+          <div class="stamp" style="color:var(--stamp-red)">DEBE</div>
+        </div>
+      </div><div class="row debe" onclick="App.openDetail('mswep2pqn7g5i')">
+        <div>
+          <div class="name">gallon londoño valeria <span class="stamp" style="transform:none;font-size:8px;">C</span></div>
+          <div class="meta">📱 3054150234 · Último: 16/8/2026</div>
+        </div>
+        <div>
+          <div class="amt debe">$500</div>
+          <div class="stamp" style="color:var(--stamp-red)">DEBE</div>
+        </div>
+      </div></div>
+  <div class="loading" id="loadingMsg" style="display: none;">Cargando libreta...</div>
+</main>
+
+<!-- Modal: nuevo cliente -->
+<div class="overlay" id="overlayNewClient" role="dialog" aria-modal="true">
+  <div class="sheet">
+    <button class="close" onclick="App.closeModal('overlayNewClient')" aria-label="Cerrar">✕</button>
+    <h2>Nuevo cliente</h2>
+    <div class="field"><label>GRADO</label><input id="newGrado" placeholder="Ej: A"></div>
+    <div class="two-col">
+      <div class="field"><label>APELLIDOS</label><input id="newApellidos" placeholder="Gómez Pérez"></div>
+      <div class="field"><label>NOMBRES</label><input id="newNombres" placeholder="María"></div>
+    </div>
+    <div class="field"><label># CELULAR</label><input id="newCelular" type="tel" placeholder="300 123 4567"></div>
+    <button class="save-btn" id="saveNewClient">Guardar cliente</button>
+  </div>
+</div>
+
+<!-- Modal: editar cliente -->
+<div class="overlay" id="overlayEditClient" role="dialog" aria-modal="true">
+  <div class="sheet">
+    <button class="close" onclick="App.closeModal('overlayEditClient')" aria-label="Cerrar">✕</button>
+    <h2>Editar datos del cliente</h2>
+    <div class="field"><label>GRADO</label><input id="editGrado" placeholder="Ej: A"></div>
+    <div class="two-col">
+      <div class="field"><label>APELLIDOS</label><input id="editApellidos" placeholder="Gómez Pérez"></div>
+      <div class="field"><label>NOMBRES</label><input id="editNombres" placeholder="María"></div>
+    </div>
+    <div class="field"><label># CELULAR</label><input id="editCelular" type="tel" placeholder="300 123 4567"></div>
+    <button class="save-btn" id="saveEditClient">Guardar cambios</button>
+  </div>
+</div>
+
+<!-- Modal: detalle cliente -->
+<div class="overlay" id="overlayDetail" role="dialog" aria-modal="true">
+  <div class="sheet" style="position:relative;">
+    <div class="modal-actions">
+      <button class="btn-close" onclick="App.closeModal('overlayDetail')" aria-label="Cerrar">✕ Cerrar</button>
+      <button class="btn-close" id="btnEditClient">✏️ Editar datos</button>
+      <button class="btn-delete" id="btnDeleteClient">🗑 Eliminar cliente</button>
+    </div>
+    <h2 id="detailName">Cliente</h2>
+    <div class="big-balance">
+      <div style="font-size:11px;color:var(--ink-soft);letter-spacing:1px;">SALDO ACTUAL</div>
+      <div class="num" id="detailBalance">$0</div>
+      <div class="stamp" id="detailStamp">AL DÍA</div>
+      <div class="phone" id="detailPhone"></div>
+    </div>
+
+    <div class="movtype">
+      <button class="sel-cargo active" id="btnCargo">+ Fío (compra)</button>
+      <button class="sel-abono" id="btnAbono">− Abono (paga)</button>
+    </div>
+    <div class="field">
+      <label>MONTO</label>
+      <input id="movAmount" type="text" inputmode="numeric" placeholder="$0" aria-label="Monto del movimiento">
+    </div>
+    <div class="field" id="detalleField">
+      <label>¿QUÉ COMPRÓ? (opcional)</label>
+      <input id="movDetalle" placeholder="Ej: arroz, aceite, gaseosa">
+    </div>
+    <button class="save-btn" id="saveMov">Registrar</button>
+
+    <div class="export-row">
+      <button id="expCSV">📊 Excel</button>
+      <button id="expPDF">📄 PDF</button>
+      <button id="expWA">💬 WhatsApp</button>
+    </div>
+
+    <div class="hist" id="histList"></div>
+  </div>
+</div>
+
+<div id="toast" role="alert" aria-live="polite"></div>
+
+<script>
+const EMBEDDED_DATA = [{"id":"mswep2pqn7g5i","apellidos":"gallon londoño","nombres":"valeria","celular":"3054150234","grado":"C","movs":[{"id":"mswepd52rh0qc","type":"cargo","amount":3500,"detalle":"gaseosa","date":"2026-08-16T22:58:51.206Z"},{"id":"mswepluuknau7","type":"cargo","amount":2000,"detalle":"empanada","date":"2026-08-16T22:59:02.502Z"},{"id":"mswepy8ud4vfu","type":"abono","amount":5000,"detalle":"","date":"2026-08-16T22:59:18.558Z"}],"balance":500},{"id":"mswesbfxi2akw","apellidos":"cardona rodriguez","nombres":"carlos andres","celular":"3156356012","grado":"C","movs":[{"id":"mswesk3a08iaj","type":"cargo","amount":100000,"detalle":"","date":"2026-08-16T23:01:20.182Z"}],"balance":100000}];
+const App = {
+  state: {
+    clientes: [],
+    currentClientId: null,
+    currentMovType: 'cargo',
+    currentFilter: 'todos',
+    searchTerm: ''
+  },
+
+  config: {
+    STORAGE_KEY: 'clientes-fiados',
+    DEBOUNCE_DELAY: 300
+  },
+
+  init() {
+    this.bindEvents();
+    this.loadData();
+  },
+
+  bindEvents() {
+    document.getElementById('btnAddClient').onclick = () => this.openNewClientModal();
+    document.getElementById('saveNewClient').onclick = () => this.saveNewClient();
+    document.getElementById('saveEditClient').onclick = () => this.saveEditClient();
+    document.getElementById('btnEditClient').onclick = () => this.openEditClientModal();
+    document.getElementById('btnDeleteClient').onclick = () => this.deleteClient();
+    document.getElementById('saveMov').onclick = () => this.saveMovement();
+    document.getElementById('btnCargo').onclick = () => this.setMovType('cargo');
+    document.getElementById('btnAbono').onclick = () => this.setMovType('abono');
+    
+    document.getElementById('searchInput').oninput = (e) => {
+      this.state.searchTerm = e.target.value.trim().toLowerCase();
+      this.render();
+    };
+
+    document.querySelectorAll('.filters button').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.filters button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.state.currentFilter = btn.dataset.f;
+        this.render();
+      };
+    });
+
+    document.getElementById('movAmount').addEventListener('input', this.handleAmountInput.bind(this));
+    document.getElementById('fileInput').onchange = this.handleFileImport.bind(this);
+
+    document.getElementById('btnExportAll').onclick = () => this.exportAllToCSV();
+    document.getElementById('btnImportAll').onclick = () => document.getElementById('fileInput').click();
+    document.getElementById('btnDownloadApp').onclick = () => this.downloadApp();
+    document.getElementById('btnShareApp').onclick = () => this.shareApp();
+    document.getElementById('btnResumenExcel').onclick = () => this.exportResumenCSV();
+    document.getElementById('btnResumenPDF').onclick = () => this.exportResumenPDF();
+    document.getElementById('btnResumenWA').onclick = () => this.exportResumenWhatsApp();
+    document.getElementById('expCSV').onclick = () => this.exportClientCSV();
+    document.getElementById('expPDF').onclick = () => this.exportClientPDF();
+    document.getElementById('expWA').onclick = () => this.exportClientWhatsApp();
+
+    document.addEventListener('keydown', this.handleKeyboard.bind(this));
+  },
+
+  handleKeyboard(e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.overlay.show').forEach(modal => {
+        this.closeModal(modal.id);
+      });
+    }
+    if (e.key === 'n' && e.ctrlKey) {
+      e.preventDefault();
+      this.openNewClientModal();
+    }
+  },
+
+  handleAmountInput(e) {
+    const num = this.rawAmount(e.target.value);
+    const pos = e.target.selectionStart;
+    const before = e.target.value.length;
+    e.target.value = num ? '$' + num.toLocaleString('es-CO') : '';
+    const after = e.target.value.length;
+    const newPos = Math.max(0, pos + (after - before));
+    e.target.setSelectionRange(newPos, newPos);
+  },
+
+  async loadData() {
+    const raw = await this.storageGet(this.config.STORAGE_KEY);
+    this.state.clientes = raw ? JSON.parse(raw) : [];
+    document.getElementById('loadingMsg').style.display = 'none';
+    this.render();
+  },
+
+  async saveData() {
+    const ok = await this.storageSet(this.config.STORAGE_KEY, JSON.stringify(this.state.clientes));
+    if (!ok) this.showToast('⚠ No se pudo guardar. Intenta de nuevo.');
+  },
+
+  async storageGet(key) {
+    if (typeof window.storage !== 'undefined' && window.storage) {
+      try {
+        const r = await window.storage.get(key, false);
+        return r ? r.value : null;
+      } catch (e) {
+        return null;
+      }
+    }
+    return localStorage.getItem(key);
+  },
+
+  async storageSet(key, val) {
+    if (typeof window.storage !== 'undefined' && window.storage) {
+      try {
+        await window.storage.set(key, val, false);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+    try {
+      localStorage.setItem(key, val);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  render() {
+    this.renderSummary();
+    this.renderClientList();
+  },
+
+  renderSummary() {
+    const totalDeuda = this.state.clientes.reduce((s, c) => s + Math.max(this.balanceOf(c), 0), 0);
+    const deudores = this.state.clientes.filter(c => this.balanceOf(c) > 0).length;
+    document.getElementById('summaryBar').innerHTML = `
+      <div class="chip debe">DEUDA TOTAL<br><b>${this.fmt(totalDeuda)}</b></div>
+      <div class="chip">DEUDORES<br><b>${deudores}</b></div>
+      <div class="chip">CLIENTES<br><b>${this.state.clientes.length}</b></div>
+    `;
+  },
+
+  renderClientList() {
+    let list = this.state.clientes.map(c => ({ ...c, bal: this.balanceOf(c) }));
+    
+    if (this.state.searchTerm) {
+      const term = this.state.searchTerm;
+      list = list.filter(c => 
+        this.fullName(c).toLowerCase().includes(term) || 
+        (c.celular || '').includes(term) || 
+        (c.grado || '').toLowerCase().includes(term)
+      );
+    }
+    
+    if (this.state.currentFilter === 'debe') list = list.filter(c => c.bal > 0);
+    if (this.state.currentFilter === 'aldia') list = list.filter(c => c.bal <= 0);
+    
+    list.sort((a, b) => b.bal - a.bal);
+
+    const wrap = document.getElementById('clientList');
+    if (list.length === 0) {
+      wrap.innerHTML = `<div class="empty"><div class="big">🗒️</div>${this.state.clientes.length === 0 ? 'Aún no tienes clientes. Toca "+ Cliente" para empezar.' : 'No hay resultados.'}</div>`;
+      return;
+    }
+
+    wrap.innerHTML = list.map(c => {
+      const st = c.bal > 0 ? 'debe' : 'aldia';
+      const last = c.movs.length ? new Date(c.movs[c.movs.length - 1].date).toLocaleDateString('es-CO') : 'sin movimientos';
+      return `<div class="row ${st}" onclick="App.openDetail('${c.id}')">
+        <div>
+          <div class="name">${this.escapeHtml(this.fullName(c))} ${c.grado ? `<span class="stamp" style="transform:none;font-size:8px;">${c.grado}</span>` : ''}</div>
+          <div class="meta">${c.celular ? '📱 ' + this.escapeHtml(c.celular) + ' · ' : ''}Último: ${last}</div>
+        </div>
+        <div>
+          <div class="amt ${st}">${c.bal > 0 ? this.fmt(c.bal) : (c.bal < 0 ? '+' + this.fmt(c.bal) : '$0')}</div>
+          <div class="stamp" style="color:var(--stamp-${st === 'debe' ? 'red' : 'green'})">${st === 'debe' ? 'DEBE' : 'AL DÍA'}</div>
+        </div>
+      </div>`;
+    }).join('');
+  },
+
+  renderDetail(client) {
+    const bal = this.balanceOf(client);
+    document.getElementById('detailName').textContent = this.fullName(client);
+    document.getElementById('detailBalance').textContent = bal > 0 ? this.fmt(bal) : (bal < 0 ? '+' + this.fmt(bal) : '$0');
+    document.getElementById('detailBalance').className = 'num ' + (bal > 0 ? 'debe' : 'aldia');
+    document.getElementById('detailPhone').textContent = [client.celular ? '📱 ' + client.celular : '', client.grado ? 'Grado ' + client.grado : ''].filter(Boolean).join('  ·  ');
+    
+    const stamp = document.getElementById('detailStamp');
+    stamp.textContent = bal > 0 ? 'DEBE' : 'AL DÍA';
+    stamp.style.color = bal > 0 ? 'var(--stamp-red)' : 'var(--stamp-green)';
+    
+    document.getElementById('movAmount').value = '';
+    document.getElementById('movDetalle').value = '';
+    this.setMovType('cargo');
+
+    const hist = [...client.movs].reverse();
+    document.getElementById('histList').innerHTML = hist.length ? hist.map(m => {
+      const d = new Date(m.date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+      return `<div class="hist-item">
+        <div class="top">
+          <span>${m.type === 'cargo' ? '🛒 Fió' : '💵 Abonó'} <span class="d">${d}</span></span>
+          <span><span class="a ${m.type}">${m.type === 'cargo' ? '+' : '−'}${this.fmt(m.amount)}</span>
+          <button class="del-mov" onclick="App.deleteMov('${m.id}')" aria-label="Eliminar movimiento">✕</button></span>
+        </div>
+        ${m.detalle ? `<div class="det">${this.escapeHtml(m.detalle)}</div>` : ''}
+      </div>`;
+    }).join('') : '<div style="color:var(--ink-soft);font-size:12px;padding:8px 0;">Sin movimientos aún.</div>';
+  },
+
+  openModal(id) {
+    document.getElementById(id).classList.add('show');
+    const focusable = document.getElementById(id).querySelector('input, button');
+    if (focusable) focusable.focus();
+  },
+
+  closeModal(id) {
+    document.getElementById(id).classList.remove('show');
+  },
+
+  openNewClientModal() {
+    document.getElementById('newApellidos').value = '';
+    document.getElementById('newNombres').value = '';
+    document.getElementById('newCelular').value = '';
+    document.getElementById('newGrado').value = '';
+    this.openModal('overlayNewClient');
+  },
+
+  async saveNewClient() {
+    const apellidos = document.getElementById('newApellidos').value.trim();
+    const nombres = document.getElementById('newNombres').value.trim();
+    const celular = document.getElementById('newCelular').value.trim();
+    const grado = document.getElementById('newGrado').value.trim();
+    
+    if (!apellidos && !nombres) {
+      this.showToast('Escribe al menos el nombre');
+      return;
+    }
+    
+    this.state.clientes.push({
+      id: this.uid(),
+      apellidos,
+      nombres,
+      celular,
+      grado,
+      movs: []
+    });
+    
+    await this.saveData();
+    this.closeModal('overlayNewClient');
+    this.render();
+    this.showToast('Cliente agregado ✓');
+  },
+
+  openDetail(id) {
+    this.state.currentClientId = id;
+    const client = this.state.clientes.find(x => x.id === id);
+    this.renderDetail(client);
+    this.openModal('overlayDetail');
+  },
+
+  openEditClientModal() {
+    const client = this.state.clientes.find(x => x.id === this.state.currentClientId);
+    document.getElementById('editGrado').value = client.grado || '';
+    document.getElementById('editApellidos').value = client.apellidos || '';
+    document.getElementById('editNombres').value = client.nombres || '';
+    document.getElementById('editCelular').value = client.celular || '';
+    this.openModal('overlayEditClient');
+  },
+
+  async saveEditClient() {
+    const client = this.state.clientes.find(x => x.id === this.state.currentClientId);
+    const apellidos = document.getElementById('editApellidos').value.trim();
+    const nombres = document.getElementById('editNombres').value.trim();
+    
+    if (!apellidos && !nombres) {
+      this.showToast('Escribe al menos el nombre');
+      return;
+    }
+    
+    client.grado = document.getElementById('editGrado').value.trim();
+    client.apellidos = apellidos;
+    client.nombres = nombres;
+    client.celular = document.getElementById('editCelular').value.trim();
+    
+    await this.saveData();
+    this.closeModal('overlayEditClient');
+    this.renderDetail(client);
+    this.render();
+    this.showToast('Datos actualizados ✓');
+  },
+
+  async deleteClient() {
+    if (!confirm('¿Eliminar este cliente y todo su historial?')) return;
+    this.state.clientes = this.state.clientes.filter(x => x.id !== this.state.currentClientId);
+    await this.saveData();
+    this.closeModal('overlayDetail');
+    this.render();
+    this.showToast('Cliente eliminado');
+  },
+
+  setMovType(type) {
+    this.state.currentMovType = type;
+    document.getElementById('btnCargo').classList.toggle('active', type === 'cargo');
+    document.getElementById('btnAbono').classList.toggle('active', type === 'abono');
+    document.getElementById('detalleField').style.display = type === 'cargo' ? 'block' : 'none';
+  },
+
+  async saveMovement() {
+    const amt = this.rawAmount(document.getElementById('movAmount').value);
+    if (!amt || amt <= 0) {
+      this.showToast('Ingresa un monto válido');
+      return;
+    }
+    
+    const detalle = document.getElementById('movDetalle').value.trim();
+    const client = this.state.clientes.find(x => x.id === this.state.currentClientId);
+    this.balanceOf(client);
+    
+    client.movs.push({
+      id: this.uid(),
+      type: this.state.currentMovType,
+      amount: amt,
+      detalle: this.state.currentMovType === 'cargo' ? detalle : '',
+      date: new Date().toISOString()
+    });
+    
+    client.balance += (this.state.currentMovType === 'cargo' ? amt : -amt);
+
+    let saldado = false;
+    if (this.state.currentMovType === 'abono' && client.balance <= 0 && client.movs.length > 0) {
+      client.movs = [];
+      saldado = true;
+    }
+
+    await this.saveData();
+    this.renderDetail(client);
+    this.render();
+    
+    if (saldado) {
+      this.showToast('✅ Deuda saldada. Historial reiniciado.');
+    } else {
+      this.showToast(this.state.currentMovType === 'cargo' ? 'Fío registrado ✓' : 'Abono registrado ✓');
+    }
+  },
+
+  async deleteMov(movId) {
+    const client = this.state.clientes.find(x => x.id === this.state.currentClientId);
+    client.movs = client.movs.filter(m => m.id !== movId);
+    await this.saveData();
+    this.renderDetail(client);
+    this.render();
+    this.showToast('Registro eliminado del historial. El saldo no cambió.');
+  },
+
+  balanceOf(client) {
+    if (typeof client.balance !== 'number') {
+      client.balance = client.movs.reduce((s, m) => s + (m.type === 'cargo' ? m.amount : -m.amount), 0);
+    }
+    return client.balance;
+  },
+
+  getResumenList() {
+    return this.state.clientes
+      .map(c => ({ c, bal: this.balanceOf(c) }))
+      .sort((a, b) => b.bal - a.bal);
+  },
+
+  exportResumenCSV() {
+    let rows = [['Grado', 'Apellidos y Nombres', 'Celular', 'Deuda general', 'Estado']];
+    this.getResumenList().forEach(({ c, bal }) => {
+      rows.push([c.grado || '', this.fullName(c), c.celular || '', bal > 0 ? bal : 0, bal > 0 ? 'DEBE' : 'AL DIA']);
+    });
+    const csv = '\ufeff' + rows.map(r => r.map(this.csvEscape).join(',')).join('\n');
+    this.downloadBlob(csv, 'resumen_general_fiados.csv', 'text/csv;charset=utf-8;');
+    this.showToast('Resumen general descargado ✓');
+  },
+
+  exportResumenPDF() {
+    const rowsHtml = this.getResumenList().map(({ c, bal }) => `
+      <tr>
+        <td>${this.escapeHtml(c.grado || '')}</td>
+        <td>${this.escapeHtml(this.fullName(c))}</td>
+        <td style="text-align:right;color:${bal > 0 ? '#A6382E' : '#3F6B4A'};">${bal > 0 ? this.fmt(bal) : '$0'}</td>
+        <td>${bal > 0 ? 'DEBE' : 'AL DÍA'}</td>
+      </tr>`).join('');
+    const totalDeuda = this.state.clientes.reduce((s, c) => s + Math.max(this.balanceOf(c), 0), 0);
+    const win = window.open('', '_blank');
+    win.document.write(`
+      <html><head><title>Resumen general - Libreta de Fiados</title>
+      <style>
+        body{font-family:Georgia,serif;padding:30px;color:#1F2A24;}
+        h1{border-bottom:3px double #1F2A24;padding-bottom:8px;}
+        table{width:100%;border-collapse:collapse;margin-top:16px;}
+        td,th{padding:8px;border-bottom:1px solid #ccc;text-align:left;font-family:'Courier New',monospace;font-size:13px;}
+        .bal{font-size:20px;font-weight:bold;margin-top:20px;color:#A6382E;}
+      </style></head><body>
+      <h1>Resumen general — Libreta de Fiados</h1>
+      <p>Fecha del reporte: ${new Date().toLocaleDateString('es-CO')}</p>
+      <table><tr><th>Grado</th><th>Apellidos y Nombres</th><th>Deuda</th><th>Estado</th></tr>${rowsHtml}</table>
+      <div class="bal">Deuda total: ${this.fmt(totalDeuda)}</div>
+      </body></html>
+    `);
+    win.document.close();
+    setTimeout(() => win.print(), 300);
+  },
+
+  exportResumenWhatsApp() {
+    const totalDeuda = this.state.clientes.reduce((s, c) => s + Math.max(this.balanceOf(c), 0), 0);
+    let msg = `📒 *Resumen general - Libreta de Fiados*\n`;
+    msg += `Fecha: ${new Date().toLocaleDateString('es-CO')}\n\n`;
+    this.getResumenList().forEach(({ c, bal }) => {
+      if (bal > 0) {
+        msg += `${c.grado ? '[' + c.grado + '] ' : ''}${this.fullName(c)} — ${this.fmt(bal)}\n`;
+      }
+    });
+    msg += `\nDeuda total: *${this.fmt(totalDeuda)}*`;
+    const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+    window.open(url, '_blank');
+  },
+
+  exportClientCSV() {
+    const client = this.state.clientes.find(x => x.id === this.state.currentClientId);
+    let rows = [['Fecha', 'Tipo', 'Detalle', 'Monto']];
+    client.movs.forEach(m => {
+      rows.push([new Date(m.date).toLocaleDateString('es-CO'), m.type === 'cargo' ? 'Fio' : 'Abono', m.detalle || '', m.amount]);
+    });
+    rows.push(['', '', 'Saldo actual', this.balanceOf(client)]);
+    const csv = '\ufeff' + rows.map(r => r.map(this.csvEscape).join(',')).join('\n');
+    this.downloadBlob(csv, `cuenta_${this.fullName(client).replace(/\s+/g, '_')}.csv`, 'text/csv;charset=utf-8;');
+    this.showToast('Descargado ✓');
+  },
+
+  exportClientPDF() {
+    const client = this.state.clientes.find(x => x.id === this.state.currentClientId);
+    const bal = this.balanceOf(client);
+    const win = window.open('', '_blank');
+    const rowsHtml = client.movs.map(m => `
+      <tr>
+        <td>${new Date(m.date).toLocaleDateString('es-CO')}</td>
+        <td>${m.type === 'cargo' ? 'Fió' : 'Abonó'}</td>
+        <td>${this.escapeHtml(m.detalle || '')}</td>
+        <td style="text-align:right;">${m.type === 'cargo' ? '+' : '-'} ${this.fmt(m.amount)}</td>
+      </tr>`).join('');
+    win.document.write(`
+      <html><head><title>Cuenta de ${this.fullName(client)}</title>
+      <style>
+        body{font-family:Georgia,serif;padding:30px;color:#1F2A24;}
+        h1{border-bottom:3px double #1F2A24;padding-bottom:8px;}
+        table{width:100%;border-collapse:collapse;margin-top:16px;}
+        td,th{padding:8px;border-bottom:1px solid #ccc;text-align:left;font-family:'Courier New',monospace;font-size:13px;}
+        .bal{font-size:22px;font-weight:bold;margin-top:20px;color:${bal > 0 ? '#A6382E' : '#3F6B4A'};}
+      </style></head><body>
+      <h1>Libreta de Fiados — ${this.escapeHtml(this.fullName(client))}</h1>
+      <p>${client.celular ? 'Celular: ' + this.escapeHtml(client.celular) + ' — ' : ''}Fecha del reporte: ${new Date().toLocaleDateString('es-CO')}</p>
+      <table><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th>Monto</th></tr>${rowsHtml}</table>
+      <div class="bal">Saldo actual: ${bal > 0 ? this.fmt(bal) + ' (DEBE)' : this.fmt(0) + ' (AL DÍA)'}</div>
+      </body></html>
+    `);
+    win.document.close();
+    setTimeout(() => win.print(), 300);
+  },
+
+  exportClientWhatsApp() {
+    const client = this.state.clientes.find(x => x.id === this.state.currentClientId);
+    const bal = this.balanceOf(client);
+    let msg = `📒 *Cuenta - ${this.fullName(client)}*\n\n`;
+    if (bal > 0) msg += `Saldo pendiente: *${this.fmt(bal)}*\n\n`;
+    else msg += `✅ Estás al día. ¡Gracias!\n\n`;
+    msg += `Últimos movimientos:\n`;
+    [...client.movs].reverse().slice(0, 5).forEach(m => {
+      const d = new Date(m.date).toLocaleDateString('es-CO');
+      msg += `${d} — ${m.type === 'cargo' ? 'Fió' : 'Abonó'} ${this.fmt(m.amount)}${m.detalle ? ' (' + m.detalle + ')' : ''}\n`;
+    });
+    let waUrl = 'https://wa.me/';
+    if (client.celular) waUrl += client.celular.replace(/[^0-9]/g, '');
+    waUrl += '?text=' + encodeURIComponent(msg);
+    window.open(waUrl, '_blank');
+  },
+
+  exportAllToCSV() {
+    let rows = [['ID', 'Apellidos', 'Nombres', 'Celular', 'Grado', 'Fecha', 'Tipo', 'Detalle', 'Monto', 'SaldoActual']];
+    this.state.clientes.forEach(c => {
+      const bal = this.balanceOf(c);
+      if (c.movs.length === 0) {
+        rows.push([c.id, c.apellidos || '', c.nombres || '', c.celular || '', c.grado || '', '', '', '', '', bal]);
+      } else {
+        c.movs.forEach((m, i) => {
+          rows.push([c.id, c.apellidos || '', c.nombres || '', c.celular || '', c.grado || '', m.date, m.type === 'cargo' ? 'Fio' : 'Abono', m.detalle || '', m.amount, i === c.movs.length - 1 ? bal : '']);
+        });
+      }
+    });
+    const csv = '\ufeff' + rows.map(r => r.map(this.csvEscape).join(',')).join('\n');
+    this.downloadBlob(csv, 'libreta_fiados_completa.csv', 'text/csv;charset=utf-8;');
+    this.showToast('Excel general descargado ✓');
+  },
+
+  handleFileImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const text = ev.target.result;
+        const parsed = this.parseCSVFull(text);
+        if (parsed.length === 0) {
+          this.showToast('El archivo está vacío o no tiene el formato esperado');
+          return;
+        }
+        const ok = confirm(`Se encontraron datos para actualizar la libreta. Esto REEMPLAZARÁ la información actual por la del archivo. ¿Continuar?`);
+        if (!ok) {
+          e.target.value = '';
+          return;
+        }
+
+        const map = {};
+        parsed.forEach(row => {
+          const id = row['ID'] || this.uid();
+          if (!map[id]) {
+            map[id] = { id, apellidos: row['Apellidos'] || '', nombres: row['Nombres'] || '', celular: row['Celular'] || '', grado: row['Grado'] || '', movs: [] };
+          }
+          if (row['Fecha'] && row['Tipo']) {
+            map[id].movs.push({
+              id: this.uid(),
+              type: row['Tipo'].toLowerCase().startsWith('fi') ? 'cargo' : 'abono',
+              amount: parseFloat(row['Monto']) || 0,
+              detalle: row['Detalle'] || '',
+              date: row['Fecha']
+            });
+          }
+        });
+        this.state.clientes = Object.values(map);
+        await this.saveData();
+        this.render();
+        this.showToast(`Libreta actualizada: ${this.state.clientes.length} clientes cargados ✓`);
+      } catch (err) {
+        this.showToast('No se pudo leer el archivo. Verifica que sea el Excel exportado desde aquí.');
+      }
+      e.target.value = '';
+    };
+    reader.readAsText(file, 'UTF-8');
+  },
+
+  parseCSVLine(line) {
+    const result = [];
+    let cur = '', inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (line[i + 1] === '"') { cur += '"'; i++; } else inQuotes = false;
+        } else cur += ch;
+      } else {
+        if (ch === '"') inQuotes = true;
+        else if (ch === ',') { result.push(cur); cur = ''; }
+        else cur += ch;
+      }
+    }
+    result.push(cur);
+    return result;
+  },
+
+  parseCSVFull(text) {
+    const clean = text.replace(/^\ufeff/, '');
+    const lines = clean.split(/\r?\n/).filter(l => l.trim().length);
+    if (lines.length < 2) return [];
+    const headers = this.parseCSVLine(lines[0]).map(h => h.trim());
+    return lines.slice(1).map(line => {
+      const vals = this.parseCSVLine(line);
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = vals[i]);
+      return obj;
+    });
+  },
+
+  buildAppHtml() {
+    document.querySelectorAll('.overlay').forEach(o => o.classList.remove('show'));
+    let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    html = html.replace('const App = {', 'const EMBEDDED_DATA = ' + JSON.stringify(this.state.clientes) + ';\nconst App = {');
+    return html;
+  },
+
+  downloadApp() {
+    this.downloadBlob(this.buildAppHtml(), 'libreta-fiados-actualizada.html', 'text/html;charset=utf-8;');
+    this.showToast('App descargada con la información actual ✓');
+  },
+
+  async shareApp() {
+    const html = this.buildAppHtml();
+    const file = new File([html], 'libreta-fiados-actualizada.html', { type: 'text/html' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'Libreta de Fiados',
+          text: 'Aquí está la libreta de fiados actualizada. Ábrela en el navegador para seguir registrando.'
+        });
+        this.showToast('Libreta compartida ✓');
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          this.showToast('No se pudo compartir. Se descargará en su lugar.');
+          this.downloadBlob(html, 'libreta-fiados-actualizada.html', 'text/html;charset=utf-8;');
+        }
+      }
+    } else {
+      this.downloadBlob(html, 'libreta-fiados-actualizada.html', 'text/html;charset=utf-8;');
+      this.showToast('Tu navegador no permite compartir directo: se descargó el archivo, envíalo por WhatsApp o correo ✓');
+    }
+  },
+
+  downloadBlob(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+
+  showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  },
+
+  uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  },
+
+  fmt(n) {
+    return '$' + Math.abs(n).toLocaleString('es-CO', { maximumFractionDigits: 0 });
+  },
+
+  fullName(client) {
+    return `${client.apellidos || ''} ${client.nombres || ''}`.trim();
+  },
+
+  rawAmount(str) {
+    return parseInt(String(str).replace(/[^0-9]/g, ''), 10) || 0;
+  },
+
+  csvEscape(v) {
+    return `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+  },
+
+  escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+
+</body></html>
